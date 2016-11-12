@@ -6,22 +6,31 @@ import string
 import tensorflow as tf
 import zipfile
 from six.moves import range
+import cStringIO
 from six.moves.urllib.request import urlretrieve
 
 num_nodes = 5
 days = 30
-training = True
+stock = 'AAPL'
 
 def generate_data(csv_file):
-    data = np.genfromtxt(csv_file, delimiter=',')[:, 1:]
+    with open(csv_file+'.csv', "r") as myfile:
+        data = myfile.read().replace('"', '')
+    data = np.genfromtxt(cStringIO.StringIO(data), delimiter=',')[1:, 1:]
+    data = data.astype(float)
     data = data[1:] / data[:-1] - 1
-    return data
+    data = np.fliplr(data.transpose())
+    train_data = data[:2240][:]
+    valid_data = data[2240:][:]
+    return train_data, valid_data
+
+train_data, valid_data = generate_data('../res/'+stock)
 
 graph = tf.Graph()
 with graph.as_default():
     # Variables
     # Input gate
-    x = tf.placeholder([num_nodes, days])
+    x = tf.placeholder(tf.float32, shape=[num_nodes, days])
     ix = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
     im = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
     ib = tf.Variable(tf.zeros([num_nodes]))
@@ -39,7 +48,7 @@ with graph.as_default():
     ob = tf.Variable(tf.zeros([num_nodes]))
     # Classifier weights and biases
     w = tf.Variable(tf.random_uniform([num_nodes, num_nodes]))
-    b = tf.Variable(tf.zeros([num_nodes]))
+    b = tf.Variable(tf.zeros([num_nodes, 1]))
 
     def lstm_cell(i, o, state):
         input_gate = tf.sigmoid(tf.matmul(ix, i) + tf.matmul(im, o) + ib)
@@ -50,15 +59,23 @@ with graph.as_default():
         return output_gate * tf.tanh(state), state
 
     y = list()
-    output = tf.zeros([num_nodes])
-    state = tf.zeros([num_nodes])
-    unrolling_less = 0
-    if training: unrolling_less = 1
-    for i in range(days-unrolling_less):
-        output, state = lstm_cell(x[i, :], output, state)
-    x = x[1:]
+    output = tf.zeros([num_nodes, 1])
+    state = tf.zeros([num_nodes, 1])
+    i = 0
+    while i < (days-1):
+        output, state = lstm_cell(tf.reshape(x[:, i], [5, 1]), output, state)
+        y.append(output)
+        i += 1
+    x = x[:, 1:]
 
-    logits = tf.matmul(w, tf.concat(0, y)) + b
-    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, tf.concat(0, x)))
+    logits = tf.matmul(w, tf.reshape(tf.reduce_sum(tf.concat(0, y), 0), [5, 1])) + b
+    loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, tf.reshape(tf.reduce_sum(tf.concat(0, x), 1), [5, 1])))
     optimizer = tf.train.AdamOptimizer().minimize(loss)
-    prediction = tf.matmul(w, y[-1]) + b
+    yT, _ = lstm_cell(tf.reshape(x[:, i], [5, 1]), output, state)
+    prediction = tf.matmul(w, yT) + b
+
+num_steps = 2201
+summary_frequency = 100
+with tf.Session(graph = graph) as sess:
+    tf.initialize_all_variables().run()
+    print('Initialized')

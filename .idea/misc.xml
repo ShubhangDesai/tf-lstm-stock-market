@@ -28,12 +28,4 @@
     <ConfirmationsSetting value="0" id="Remove" />
   </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="Python 2.7.10 (/System/Library/Frameworks/Python.framework/Versions/2.7/bin/python2.7)" project-jdk-type="Python SDK" />
-  <component name="PyConsoleOptionsProvider">
-    <option name="myPythonConsoleState">
-      <console-settings sdk-home="/usr/local/opt/python/bin/python2.7" working-directory="$PROJECT_DIR$/../TestProject/src">
-        <option name="mySdkHome" value="/usr/local/opt/python/bin/python2.7" />
-        <option name="myWorkingDirectory" value="$PROJECT_DIR$/../TestProject/src" />
-      </console-settings>
-    </option>
-  </component>
 </project>
