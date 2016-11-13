@@ -1,17 +1,13 @@
 from __future__ import print_function
-import os
 import numpy as np
-import random
-import string
 import tensorflow as tf
-import zipfile
 from six.moves import range
 import cStringIO
-from six.moves.urllib.request import urlretrieve
+
+stock = 'AAPL'
 
 num_nodes = 5
 days = 30
-stock = 'AAPL'
 valid_unrolls = 2
 valid_amount = 100
 
