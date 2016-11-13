@@ -12,6 +12,8 @@ from six.moves.urllib.request import urlretrieve
 num_nodes = 5
 days = 30
 stock = 'AAPL'
+valid_unrolls = 2
+valid_amount = 100
 
 def generate_data(csv_file):
     with open(csv_file+'.csv', "r") as myfile:
@@ -29,22 +31,19 @@ train_data, valid_data = generate_data('../res/'+stock)
 class BatchGenerator(object):
   cursor = 0
   def __init__(self, data, batch_size, num_unrollings):
-    self.data = data
+    self._data = data
     self._batch_size = batch_size
     self._num_unrollings = num_unrollings
 
   def next(self):
     batch = np.zeros([self._batch_size, self._num_unrollings])
     for i in range(self._num_unrollings):
-        print(i)
-        batch[:, i] = self.data[:, self.cursor]
+        batch[:, i] = self._data[:, self.cursor]
         self.cursor += 1
     return batch
 
 train_batches = BatchGenerator(train_data, num_nodes, days)
-valid_data = BatchGenerator(valid_data, num_nodes, days)
-print(train_batches.next().shape)
-print(train_batches.next().shape)
+valid_batches = BatchGenerator(valid_data, num_nodes, valid_unrolls)
 
 graph = tf.Graph()
 with graph.as_default():
@@ -94,8 +93,19 @@ with graph.as_default():
     yT, _ = lstm_cell(tf.reshape(x[:, i], [5, 1]), output, state)
     prediction = tf.matmul(w, yT) + b
 
-num_steps = 2001
+num_steps = 2000
 summary_frequency = 100
 with tf.Session(graph = graph) as sess:
     tf.initialize_all_variables().run()
     print('Initialized')
+    mean_loss = 0
+    for step in range(num_steps):
+        batch = train_batches.next()
+        print(batch.dtype)
+        _, l = sess.run([optimizer, loss], feed_dict={x: batch})
+        mean_loss += l
+        if (step+1) % summary_frequency == 0:
+            mean_loss = mean_loss/summary_frequency
+            valid_batch = valid_batches.next()
+
+    save_path = tf.train.Saver().save(sess, '../models/' + stock + '_model.ckpt')
