@@ -20,11 +20,31 @@ def generate_data(csv_file):
     data = data.astype(float)
     data = data[1:] / data[:-1] - 1
     data = np.fliplr(data.transpose())
-    train_data = data[:2240][:]
-    valid_data = data[2240:][:]
+    train_data = data[:, :2030]
+    valid_data = data[:, 2030:2260]
     return train_data, valid_data
 
 train_data, valid_data = generate_data('../res/'+stock)
+
+class BatchGenerator(object):
+  cursor = 0
+  def __init__(self, data, batch_size, num_unrollings):
+    self.data = data
+    self._batch_size = batch_size
+    self._num_unrollings = num_unrollings
+
+  def next(self):
+    batch = np.zeros([self._batch_size, self._num_unrollings])
+    for i in range(self._num_unrollings):
+        print(i)
+        batch[:, i] = self.data[:, self.cursor]
+        self.cursor += 1
+    return batch
+
+train_batches = BatchGenerator(train_data, num_nodes, days)
+valid_data = BatchGenerator(valid_data, num_nodes, days)
+print(train_batches.next().shape)
+print(train_batches.next().shape)
 
 graph = tf.Graph()
 with graph.as_default():
@@ -74,7 +94,7 @@ with graph.as_default():
     yT, _ = lstm_cell(tf.reshape(x[:, i], [5, 1]), output, state)
     prediction = tf.matmul(w, yT) + b
 
-num_steps = 2201
+num_steps = 2001
 summary_frequency = 100
 with tf.Session(graph = graph) as sess:
     tf.initialize_all_variables().run()
