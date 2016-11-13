@@ -4,9 +4,9 @@ import tensorflow as tf
 from six.moves import range
 import cStringIO
 
-stock = 'AAPL'
-# stock = 'GOOG'
-# stock = 'MSFT'gi
+# stock = 'AAPL'
+stock = 'GOOGL'
+# stock = 'MSFT'
 
 num_nodes = 5
 days = 30
@@ -36,8 +36,8 @@ class BatchGenerator(object):
   def next(self):
     batch = np.zeros([self._batch_size, self._num_unrollings])
     for i in range(self._num_unrollings):
-        batch[:, i] = self._data[:, self.cursor]
-        self.cursor += 1
+        batch[:, i] = self._data[:, i+self.cursor]
+    self.cursor += 1
     return batch
 
 train_batches = BatchGenerator(train_data, num_nodes, days)
@@ -82,7 +82,6 @@ with graph.as_default():
         y.append(output)
         MSE += tf.reduce_mean(tf.square(output - tf.reshape(x[:, i+1], [5, 1])))
         i += 1
-    x = x[:, 1:]
 
     loss = MSE/(days-1)
     optimizer = tf.train.AdamOptimizer().minimize(loss)
@@ -97,16 +96,16 @@ with tf.Session(graph = graph) as sess:
     for step in range(num_steps):
         batch = train_batches.next()
         batch = batch.astype(np.float32)
-        print(batch.shape)
-        print(batch.dtype)
         _, l = sess.run([optimizer, loss], feed_dict={x: batch})
         mean_loss += l
         if (step+1) % summary_frequency == 0:
             mean_loss = mean_loss/summary_frequency
             print('Average MSE at step %f: %s' % (step, mean_loss))
+            mean_loss = 0
             valid_batch = valid_batches.next()
             valid_batch = batch.astype(np.float32)
             v_l = sess.run([loss], feed_dict={x: valid_batch})
+            v_l = v_l[0]
             print('Validation MSE: %f' % v_l)
 
     save_path = tf.train.Saver().save(sess, '../models/' + stock + '_model.ckpt')

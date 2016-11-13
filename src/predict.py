@@ -51,4 +51,5 @@ def predict(stock, data):
     with tf.Session() as sess:
         tf.train.Saver().restore(sess, '../models' + stock + '_model.ckpt')
         prediction = sess.run([yT], feed_dict={x: data})
+        print(prediction)
         return prediction
