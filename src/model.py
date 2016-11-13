@@ -5,6 +5,8 @@ from six.moves import range
 import cStringIO
 
 stock = 'AAPL'
+# stock = 'GOOG'
+# stock = 'MSFT'gi
 
 num_nodes = 5
 days = 30
