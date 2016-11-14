@@ -100,12 +100,17 @@ with tf.Session(graph = graph) as sess:
         mean_loss += l
         if (step+1) % summary_frequency == 0:
             mean_loss = mean_loss/summary_frequency
-            print('Average MSE at step %f: %s' % (step, mean_loss))
+            print('Average MSE at step %s: %s' % (step, mean_loss))
             mean_loss = 0
             valid_batch = valid_batches.next()
             valid_batch = batch.astype(np.float32)
-            v_l = sess.run([loss], feed_dict={x: valid_batch})
-            v_l = v_l[0]
+
+            v_l, yT = sess.run([loss, yT], feed_dict={x: valid_batch})
+            yT = yT[:, 0]
+            print('Validation predictions: %s' % yT)
+
+            # v_l = sess.run(loss, feed_dict={x: valid_batch})
             print('Validation MSE: %f' % v_l)
+
 
     save_path = tf.train.Saver().save(sess, '../models/' + stock + '_model.ckpt')

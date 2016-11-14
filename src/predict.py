@@ -3,7 +3,9 @@ import tensorflow as tf
 num_nodes = 5
 days = 30
 
-with tf.Graph().as_default():
+graph = tf.Graph()
+
+with graph.as_default():
     # Variables
     # Input gate
     x = tf.placeholder(tf.float32, shape=[num_nodes, days])
@@ -22,6 +24,8 @@ with tf.Graph().as_default():
     ox = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
     om = tf.Variable(tf.truncated_normal([num_nodes, num_nodes], -0.1, 0.1))
     ob = tf.Variable(tf.zeros([num_nodes]))
+
+    saver = tf.train.Saver()
 
     def lstm_cell(i, o, state):
         input_gate = tf.sigmoid(tf.matmul(ix, i) + tf.matmul(im, o) + ib)
@@ -48,8 +52,8 @@ with tf.Graph().as_default():
     yT, _ = lstm_cell(tf.reshape(x[:, i], [5, 1]), output, state)
 
 def predict(stock, data):
-    with tf.Session() as sess:
-        tf.train.Saver().restore(sess, '../models' + stock + '_model.ckpt')
+    with tf.Session(graph=graph) as sess:
+        tf.train.Saver().restore(sess, '../models/' + stock + '_model.ckpt')
         prediction = sess.run([yT], feed_dict={x: data})
         prediction = prediction[0][:, 0]
         print(prediction)
