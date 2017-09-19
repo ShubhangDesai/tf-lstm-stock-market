@@ -49,11 +49,12 @@ with graph.as_default():
 
     loss = MSE/(days-1)
     optimizer = tf.train.AdamOptimizer().minimize(loss)
-    yT, _ = lstm_cell(tf.reshape(x[:, i], [5, 1]), output, state)
+    yT, _ = lstm_cell(tf.reshape(x[:, i-1], [5, 1]), output, state)
 
 def predict(stock, data):
     with tf.Session(graph=graph) as sess:
         tf.train.Saver().restore(sess, '../models/' + stock + '_model.ckpt')
+        print(data.shape)
         prediction = sess.run([yT], feed_dict={x: data})
         prediction = prediction[0][:, 0]
         print(prediction)
